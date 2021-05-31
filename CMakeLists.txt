@@ -23,13 +23,13 @@ include(${CPM_DOWNLOAD_LOCATION})
 # See https://github.com/TheLartians/CPM.cmake for details and examples
 
 # the ModernCppStarter defines an example project called 'Greeter'
-CPMAddPackage("gh:TheLartians/ModernCppStarter@0.17.2")
-
+CPMAddPackage("gh:SanderMertens/flecs#36f2d4ca768802bef28a28c312422292a056256c")
+CPMAddPackage("gh:/SFML/SFML#2f11710abc5aa478503a7ff3f9e654bd2078ebab@2.5.1")
 # ---- Create executable ----
 
 # add your source files here
 add_executable(Playground main.cpp)
 # link to your dependencies' targets here
-target_link_libraries(Playground Greeter::Greeter)
+target_link_libraries(Playground flecs::flecs_static)
 # setup your target's properties
-set_target_properties(Playground PROPERTIES CXX_STANDARD 17)
+set_target_properties(Playground PROPERTIES CXX_STANDARD 17 OUTPUT_NAME "Playground")
