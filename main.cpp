@@ -1,4 +1,5 @@
 #include <iostream>
+#include <functional>
 
 #include <flecs.h>
 
@@ -31,9 +32,7 @@ struct Stats {
   Hunger hunger;
 };
 
-struct Hungry {
-  flecs::entity entity;
-};
+struct Hungry {};
 
 struct Comfortable {
   int comfort_per_second;
@@ -41,35 +40,32 @@ struct Comfortable {
 
 void update_hunger(flecs::iter& it, Hunger* hunger) {
   for (auto& i : it) {
-    hunger[i].value - hunger[i].loss_per_second;
+    hunger[i].value -= hunger[i].loss_per_second;
+    cout << it.entity(i) << " hunger: " << hunger[i].value << endl;
     if (hunger[i].value < hunger[i].min) {
-      it.world().entity().add<Hungry>(it.entity(i));
+      it.entity(i).add<Hungry>();
     }
   }
 }
 
-void update_hungry(flecs::iter& it, Hungry* hungry) {
-  auto food_query = it.world().query<Nutrition>();
 
+flecs::query<Nutrition> food_query;
+
+void update_hungry(flecs::iter& it, Hungry* hungry, Hunger* hunger) {
   for (auto& i : it) {
-    auto hunger = hungry[i].entity.get_mut<Hunger>();
+    //auto& hunger = hunger[i];
     flecs::entity entity_to_eat;
     Nutrition nutrition_to_get;
     food_query.each([&](flecs::entity e, Nutrition nutrition) {
       entity_to_eat = e;
       nutrition_to_get = nutrition;
       });
-    hunger->value += nutrition_to_get.calories;
+    it.entity(i).get_mut<Hunger>()->value += nutrition_to_get.calories;
     it.world().remove(entity_to_eat);
     cout << it.entity(i) << " just ate starfruit: " << it.entity(i);
-
-
-
-
-
-
   }
 }
+
 
 void update_comfort(flecs::iter& it, Comfortable comfortable) {
   //it.world().
@@ -80,34 +76,31 @@ int main(int argc, char* argv[]) {
   /* Create the world, pass arguments for overriding the number of threads,fps
    * or for starting the admin dashboard (see flecs.h for details). */
   flecs::world ecs(argc, argv);
+  ecs.component<Hungry>();
+  ecs.component<Nutrition>();
 
-  ecs.system<Message>()
-    .each([](Message& messages) {
-    std::cout << messages.text << std::endl;
-      });
 
-  ecs.entity().set<Message>({ "Hello Flecs!" });
-
-  auto starfruit = ecs.type("Starfruit")
-    .add<Nutrition>(10);
   for (int i = 0; i < 20; ++i) {
-    ecs.entity().add(starfruit);
+    ecs.entity().set<Nutrition>({ 10 });
   }
+ 
+  food_query = ecs.query<Nutrition>();
 
-  auto dwarf = ecs.entity() 
-    .set<Hunger>({ 100, 100, 40, 5 });
   for (int i = 0; i < 20; ++i) {
-    ecs.entity().add(dwarf);
+    ecs.entity().set<Hunger>({ 100, 40, 100, 5 });
   }
   
   ecs.system<Hunger>("Hunger").iter(update_hunger);
-  ecs.system<Hungry>("Hungry").iter(update_hungry);
+  ecs.system<Hungry, Hunger>("Hungry").iter(update_hungry);
+   // HungrySystem::update);
 
 
-  ecs.set_target_fps(1);
+  ecs.set_target_fps(20);
 
   std::cout << "Application simple_system is running, press CTRL-C to exit..." << std::endl;
 
   /* Run systems */
-  while (ecs.progress()) {}
+  while (ecs.progress()) {
+  
+  }
 }
